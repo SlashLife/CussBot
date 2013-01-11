@@ -103,14 +103,53 @@ if(isset($_GET["piedata"])){
 		<script type="text/javascript" src="flot.js"></script>
 		<script type="text/javascript">
 			if(window.XMLHttpRequest){
-				xmlhttp=new XMLHttpRequest();
+				menuxmlhttp=new XMLHttpRequest();
+				piexmlhttp=new XMLHttpRequest();
+				linexmlhttp=new XMLHttpRequest();
 			}else if(window.ActiveXObject){
-				xmlhttp=new ActiveXObject("MSXML2.XMLHTTP.3.0");
+				menuxmlhttp=new ActiveXObject("MSXML2.XMLHTTP.3.0");
+				piexmlhttp=new ActiveXObject("MSXML2.XMLHTTP.3.0");
+				linexmlhttp=new ActiveXObject("MSXML2.XMLHTTP.3.0");
 			}else{
 				alert("Browser does not support XMLHttpRequest!");
 			}
 			
 			function initialize(){
+				piexmlhttp.onreadystatechange=function(){
+					if(piexmlhttp.readyState==4){
+						$.plot($("#piegraph"),JSON.parse(piexmlhttp.responseText),{
+							series:{
+								pie:{ 
+									show:true,
+									radius:1,
+									label:{
+										show:true,
+										radius:1,
+										formatter:function(label,series){
+											return '<div style="font-size:8pt;text-align:center;padding:2px;color:white;">'+label+'<br/>'+series.data[0][1]+' ('+Math.round(series.percent)+'%)</div>';
+										},
+										background:{opacity:0.8}
+									}
+								}
+							},
+							legend:{
+								show:false
+							}
+						});
+					}
+				};
+				linexmlhttp.onreadystatechange=function(){
+					if(linexmlhttp.readyState==4){
+						$.plot("#linegraph",JSON.parse(linexmlhttp.responseText),{
+							lines:{
+								show:true
+							},
+							points:{
+								show:true
+							}
+						});
+					}
+				};
 				updatechannels();
 				updatenicks();
 				redrawgraphs();
@@ -122,52 +161,25 @@ if(isset($_GET["piedata"])){
 			}
 			
 			function redrawpie(){
-				xmlhttp.open("GET","index.php?piedata=true&channel="+document.getElementById("channels").value+"&nick="+document.getElementById("nicks").value,false);
-				xmlhttp.send(null);
-				$.plot($("#piegraph"),JSON.parse(xmlhttp.responseText),{
-					series:{
-						pie:{ 
-							show:true,
-							radius:1,
-							label:{
-								show:true,
-								radius:1,
-								formatter:function(label,series){
-									return '<div style="font-size:8pt;text-align:center;padding:2px;color:white;">'+label+'<br/>'+series.data[0][1]+' ('+Math.round(series.percent)+'%)</div>';
-								},
-								background:{opacity:0.8}
-							}
-						}
-					},
-					legend:{
-						show:false
-					}
-				});
+				piexmlhttp.open("GET","index.php?piedata=true&channel="+document.getElementById("channels").value+"&nick="+document.getElementById("nicks").value,false);
+				piexmlhttp.send(null);
 			}
 			
 			function redrawline(){
-				xmlhttp.open("GET","index.php?linedata=true&channel="+document.getElementById("channels").value+"&nick="+document.getElementById("nicks").value,false);
-				xmlhttp.send(null);
-				$.plot("#linegraph",JSON.parse(xmlhttp.responseText),{
-					lines:{
-						show:true
-					},
-					points:{
-						show:true
-					}
-				});
+				linexmlhttp.open("GET","index.php?linedata=true&channel="+document.getElementById("channels").value+"&nick="+document.getElementById("nicks").value,false);
+				linexmlhttp.send(null);
 			}
 			
 			function updatechannels(){
-				xmlhttp.open("GET","index.php?channellist=true",false);
-				xmlhttp.send(null);
-				document.getElementById('channels').innerHTML=xmlhttp.responseText;
+				menuxmlhttp.open("GET","index.php?channellist=true",false);
+				menuxmlhttp.send(null);
+				document.getElementById('channels').innerHTML=menuxmlhttp.responseText;
 			}
 			
 			function updatenicks(){
-				xmlhttp.open("GET","index.php?nicklist=true&channel="+document.getElementById("channels").value,false);
-				xmlhttp.send(null);
-				document.getElementById('nicks').innerHTML=xmlhttp.responseText;
+				menuxmlhttp.open("GET","index.php?nicklist=true&channel="+document.getElementById("channels").value,false);
+				menuxmlhttp.send(null);
+				document.getElementById('nicks').innerHTML=menuxmlhttp.responseText;
 			}
 		</script>
 	</head>
