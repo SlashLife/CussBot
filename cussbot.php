@@ -27,6 +27,15 @@ $sqldb="cussbot";
 $botnick="CussBot";
 $botname="Cuss Statistics Bot";
 
+$searches=array(
+	"mostcommonword"     =>array('lookup'=>"word"    ,'order'=>"DESC",'what'=>"most common cuss word"     ,'item'=>"use" ,'itemplural'=>"s"),
+	"leastcommonword"    =>array('lookup'=>"word"    ,'order'=>"ASC" ,'what'=>"least common cuss word"    ,'item'=>"use" ,'itemplural'=>"s"),
+	"mostprolific"       =>array('lookup'=>"nick"    ,'order'=>"DESC",'what'=>"most prolific cusser"      ,'item'=>"cuss",'itemplural'=>"es"),
+	"leastprolific"      =>array('lookup'=>"nick"    ,'order'=>"ASC" ,'what'=>"least prolific cusser"     ,'item'=>"cuss",'itemplural'=>"es"),
+	"mostcommoncategory" =>array('lookup'=>"fullname",'order'=>"DESC",'what'=>"most common cuss category" ,'item'=>"use" ,'itemplural'=>"s"),
+	"leastcommoncategory"=>array('lookup'=>"fullname",'order'=>"ASC" ,'what'=>"least common cuss category",'item'=>"use" ,'itemplural'=>"s")
+);
+
 sqlconnect();
 ircconnect();
 
@@ -132,54 +141,28 @@ while(true){
 							}
 						}
 						if($commandarray[1]=="help"){
-							ircprivmessage("Valid searches are \"mostcommonword\", \"leastcommonword\", \"mostprolific\", \"leastprolific\", \"mostcommoncategory\", and \"leastcommoncategory\".");
+							$valid_searches = array_keys($searches);
+							foreach($valid_searches as &$this_search) {
+								$this_search = "\"$this_search\"";
+							}
+							if (sizeof($valid_searches) > 1) {
+								$this_search = "and $this_search"; // referece to last element leaked by var_dump
+							}
+							undef($last_search);
+							ircprivmessage("Valid searches are \"" . implode(", ", $valid_searches) . "\".");
 							ircprivmessage("Valid arguments are \"--nick <nick>\", \"--channel <#channel>\", \"--word <word>\", and \"--category <category>\".");
 							continue;
-						}else if($commandarray[1]=="mostcommonword"){
-							$lookup="word";
-							$order="DESC";
-							$what="most common cuss word";
-							$item="use";
-							$itemplural="s";
-						}else if($commandarray[1]=="leastcommonword"){
-							$lookup="word";
-							$order="ASC";
-							$what="least common cuss word";
-							$item="use";
-							$itemplural="s";
-						}else if($commandarray[1]=="mostprolific"){
-							$lookup="nick";
-							$order="DESC";
-							$what="most prolific cusser";
-							$item="cuss";
-							$itemplural="es";
-						}else if($commandarray[1]=="leastprolific"){
-							$lookup="nick";
-							$order="ASC";
-							$what="least prolific cusser";
-							$item="cuss";
-							$itemplural="es";
-						}else if($commandarray[1]=="mostcommoncategory"){
-							$lookup="fullname";
-							$order="DESC";
-							$what="most common cuss category";
-							$item="use";
-							$itemplural="s";
-						}else if($commandarray[1]=="leastcommoncategory"){
-							$lookup="fullname";
-							$order="ASC";
-							$what="least common cuss category";
-							$item="use";
-							$itemplural="s";
+						}else if(isset($searches[$commandarray[1]])){
+							extract($searches[$commandarray[1]]);
+							$sqlresult=sqlquery("SELECT $lookup, COUNT($lookup) AS count FROM uses JOIN words ON uses.wordid=words.id JOIN categories ON words.categoryid=categories.id JOIN channels ON uses.channelid=channels.id" . ($conditionstring!="" ? " WHERE $conditionstring" : "") . " GROUP BY $lookup ORDER BY count $order LIMIT 1");
+							if(sqlnumrows($sqlresult)>0){
+								ircprivmessage("The $what was \"" . sqlresult($sqlresult,0,$lookup) . "\" with " . sqlresult($sqlresult,0,"count") . " $item" . ((int)sqlresult($sqlresult,0,"count")!=1 ? $itemplural:"") . ".");
+							}else{
+								ircprivmessage("Your query returns no results.  Please check any conditions and try again.");
+							}
 						}else{
 							ircprivmessage("Invalid search!  Try \"search help\" for a list of valid searches.");
 							continue;
-						}
-						$sqlresult=sqlquery("SELECT $lookup, COUNT($lookup) AS count FROM uses JOIN words ON uses.wordid=words.id JOIN categories ON words.categoryid=categories.id JOIN channels ON uses.channelid=channels.id" . ($conditionstring!="" ? " WHERE $conditionstring" : "") . " GROUP BY $lookup ORDER BY count $order LIMIT 1");
-						if(sqlnumrows($sqlresult)>0){
-							ircprivmessage("The $what was \"" . sqlresult($sqlresult,0,$lookup) . "\" with " . sqlresult($sqlresult,0,"count") . " $item" . ((int)sqlresult($sqlresult,0,"count")!=1 ? $itemplural:"") . ".");
-						}else{
-							ircprivmessage("Your query returns no results.  Please check any conditions and try again.");
 						}
 					}else{
 						ircprivmessage("Invalid search!  Try \"search help\" for a list of valid searches.");
